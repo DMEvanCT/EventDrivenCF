@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  laji_project
+
+  Sample SAM Template for laji_project
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+    Tracing: Active
+  Api:
+    TracingEnabled: true
+Resources:
+  PolingestionFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: policy_ingestion/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - arm64
+      Events:
+        policyingestionApi:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /api/v1/policy/new
+            Method: post
+            RestApiId: !Ref ApiPolicy
+            Auth:
+              ApiKeyRequired: true
+  ApiKey:
+    Type: 'AWS::ApiGateway::ApiKey'
+    DependsOn:
+      - TestAPIDeployment
+      - Test
+    Properties:
+      Name: PolicyApiKey
+      Description: CloudFormation API Key V1
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref RestApi
+          StageName: Test
+  ApiPolicy:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Env
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Join:
+          - ''
+          - ApplicationInsights-SAM-
+          - !Ref AWS::StackName
+      ResourceQuery:
+        Type: CLOUDFORMATION_STACK_1_0
+        Query:
+          StackIdentifier: !Ref AWS::StackId
+  ApplicationInsightsMonitoring:
+    Type: AWS::ApplicationInsights::Application
+    Properties:
+      ResourceGroupName:
+        Fn::Join:
+          - ''
+          - ApplicationInsights-SAM-
+          - !Ref AWS::StackName
+      AutoConfigurationEnabled: true
+    DependsOn: ApplicationResourceGroup
+  EventBus:
+    Type: "AWS::EventBridge::EventBus"
+    Properties:
+      Name: PolicyEventBus     
+  LifeInsuranceRule:
+    Type: "AWS::EventBridge::Rule"
+    Properties:
+      Name: LifeInsuranceRule
+      Description: "Rule to route life insurance policy data"
+      EventBusName: !Ref EventBus
+      EventPattern:
+        source:
+          - "laji_project.policydata"
+        detail:
+          policytype:
+            - "life insurance"
+      Targets:
+        - Arn: !GetAtt LifeIngestionFunction.Arn
+          Id: "LifeInsuranceRuleTarget"          
+  AutoInsuranceRule:
+    Type: "AWS::EventBridge::Rule"
+    Properties:
+      Name: AutoInsuranceRule
+      Description: "Rule to route auto insurance policy data"
+      EventBusName: !Ref EventBus
+      EventPattern:
+        source:
+          - "laji_project.policydata"
+        detail:
+          policytype:
+            - "auto insurance"
+      Targets:
+        - Arn: !GetAtt AutoIngestionFunction.Arn
+          Id: "AutoInsuranceRuleTarget"
+  LifeInsuranceQueue:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      QueueName: LifeInsuranceQueue
+  AutoInsuranceQueue:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      QueueName: AutoInsuranceQueue
+  LifeInsuranceQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Id: PolicyId
+        Version: '2012-10-17'
+        Statement:
+          - Sid: '1'
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - sqs:SendMessage
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+            Resource: !GetAtt LifeInsuranceQueue.Arn
+      Queues:
+        - !Ref LifeInsuranceQueue
+  AutoInsuranceQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt AutoInsuranceQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref EventBridgePolicy
+      Queues:
+        - !Ref AutoInsuranceQueue
+  LifeInsuranceDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: policyId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: policyId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: LifeInsuranceDynamoTable
+  AutoInsuranceDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: policyId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: policyId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TableName: AutoInsuranceDynamoTable
+  LifeInsuranceLoadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: life_insurance_load/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
+          SQS_QUEUE: !Ref LifeInsuranceQueue
+      Policies:
+        - SQSPollerPolicy:
+            QueueName: !Ref LifeInsuranceQueue
+      Events:
+        LifeInsuranceQueue:
+          Type: SQS
+          Properties:
+            Queue: !Ref LifeInsuranceQueue
+  AutoInsuranceLoadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: auto_insurance_load/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref AutoInsuranceDynamoTable
+          SQS_QUEUE: !Ref AutoInsuranceQueue
+      Policies:
+        - SQSPollerPolicy:
+            QueueName: !Ref AutoInsuranceQueue
+      Events:
+        AutoInsuranceQueue:
+          Type: SQS
+          Properties:
+            Queue: !Ref AutoInsuranceQueue
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  PolicyApi:
+    Description: API Gateway endpoint URL for Prod stage for Policy Ingestion function
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/policy/new"
+  PolingestionFunction:
+    Description: Policy Ingestion Lambda Function ARN
+    Value: !GetAtt PolingestionFunction.Arn
+  PolingestionFunctionIamRole:
+    Description: Implicit IAM Role created for Policy Ingestion function
+    Value: !GetAtt PolingestionFunctionRole.Arn
+  LifeInsuranceQueue:
+    Description: SQS Queue URL for Life Insurance
+    Value: !GetAtt LifeInsuranceQueue.Arn
+  AutoInsuranceQueue:
+    Description: SQS Queue URL for Auto Insurance
+    Value: !GetAtt AutoInsuranceQueue.Arn
+  LifeInsuranceDynamoTable:
+    Description: DynamoDB Table Name for Life Insurance
+    Value: !Ref LifeInsuranceDynamoTable
+  AutoInsuranceDynamoTable:
+    Description: DynamoDB Table Name for Auto Insurance
+    Value: !Ref AutoInsuranceDynamoTable
+  LifeInsuranceLoadFunction:
+    Description: Lambda function to load life insurance events to DynamoDB table
+    Value: !GetAtt LifeInsuranceLoadFunction.Arn
+  AutoInsuranceLoadFunction:
+    Description: Lambda function to load auto insurance events to DynamoDB table
+    Value: !GetAtt AutoInsuranceLoadFunction.Arn   
+
