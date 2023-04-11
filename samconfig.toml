@@ -29,3 +29,12 @@ warm_containers = "EAGER"
 
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
+
+[dev]
+[dev.deploy]
+[dev.deploy.parameters]
+stack_name = "event-drive"
+s3_prefix = "event-drive"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
