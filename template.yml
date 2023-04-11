@@ -32,16 +32,13 @@ Resources:
               ApiKeyRequired: true
   ApiKey:
     Type: 'AWS::ApiGateway::ApiKey'
-    DependsOn:
-      - TestAPIDeployment
-      - Test
     Properties:
       Name: PolicyApiKey
       Description: CloudFormation API Key V1
       Enabled: true
-      StageKeys:
+      StageKeys: 
         - RestApiId: !Ref RestApi
-          StageName: Test
+          StageName: Prod
   ApiPolicy:
     Type: AWS::Serverless::Api
     Properties:
