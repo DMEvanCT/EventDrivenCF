@@ -34,6 +34,7 @@ warm_containers = "EAGER"
 [dev.deploy]
 [dev.deploy.parameters]
 stack_name = "event-drive"
+s3_bucket = aws-slalom-serverless-repo
 s3_prefix = "event-drive"
 region = "us-east-1"
 confirm_changeset = true
