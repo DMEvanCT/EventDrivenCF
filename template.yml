@@ -37,9 +37,9 @@ Resources:
       Description: CloudFormation API Key V1
       Enabled: true
       StageKeys: 
-        - RestApiId: !Ref RestApi
-          StageName: Prod
-  ApiPolicy:
+        - RestApiId: !Ref MyApi
+          StageName: !Ref Env
+  MyApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref Env
