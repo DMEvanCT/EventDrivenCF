@@ -50,7 +50,9 @@ Resources:
     Properties:
       StageName: !Ref Env
       EndpointConfiguration:
-        Types: REGIONAL
+        Types: 
+          - REGIONAL
+          - !IllegalFunction VALUE
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
     Properties:
@@ -82,7 +84,7 @@ Resources:
           policytype:
             - "life insurance"
       Targets:
-        - Arn: !GetAtt LifeInsuranceLoadFunction.Arn
+        - Arn: !GetAtt LifeInsuranceLoadFunction
           Id: "LifeInsuranceRuleTarget"          
   AutoInsuranceRule:
     Type: AWS::Events::Rule
@@ -97,7 +99,7 @@ Resources:
           policytype:
             - "auto insurance"
       Targets:
-        - Arn: !GetAtt AutoInsuranceLoadFunction.Arn
+        - Arn: !GetAtt AutoInsuranceLoadFunction
           Id: "AutoInsuranceRuleTarget"
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
