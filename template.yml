@@ -7,7 +7,7 @@ Description: >
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Parameters:
-  StageName:
+  Env:
     Type: String
     Description: The name of the deployment stage(e.g dev, test, prod)
     Default: Env
