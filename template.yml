@@ -48,11 +48,7 @@ Resources:
   MyApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: !Ref Env
-      EndpointConfiguration:
-        Types: 
-          - REGIONAL
-          - !IllegalFunction VALUE
+      StageName: Env
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
     Properties:
@@ -84,7 +80,7 @@ Resources:
           policytype:
             - "life insurance"
       Targets:
-        - Arn: !GetAtt LifeInsuranceLoadFunction
+        - Arn: !GetAtt LifeInsuranceLoadFunction.Arn
           Id: "LifeInsuranceRuleTarget"          
   AutoInsuranceRule:
     Type: AWS::Events::Rule
@@ -99,7 +95,7 @@ Resources:
           policytype:
             - "auto insurance"
       Targets:
-        - Arn: !GetAtt AutoInsuranceLoadFunction
+        - Arn: !GetAtt AutoInsuranceLoadFunction.Arn
           Id: "AutoInsuranceRuleTarget"
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
