@@ -6,6 +6,12 @@ Description: >
   Sample SAM Template for laji_project
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Parameters:
+  StageName:
+    Type: String
+    Description: The name of the deployment stage(e.g dev, test, prod)
+    Default: Env
+
 Globals:
   Function:
     Timeout: 3
@@ -27,7 +33,7 @@ Resources:
           Properties:
             Path: /api/v1/policy/new
             Method: post
-            RestApiId: !Ref ApiPolicy
+            RestApiId: !Ref MyApi
             Auth:
               ApiKeyRequired: true
   ApiKey:
@@ -44,8 +50,7 @@ Resources:
     Properties:
       StageName: !Ref Env
       EndpointConfiguration:
-        Types:
-          - REGIONAL
+        Types: REGIONAL
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
     Properties:
@@ -77,7 +82,7 @@ Resources:
           policytype:
             - "life insurance"
       Targets:
-        - Arn: !GetAtt LifeIngestionFunction.Arn
+        - Arn: !GetAtt LifeInsuranceLoadFunction.Arn
           Id: "LifeInsuranceRuleTarget"          
   AutoInsuranceRule:
     Type: AWS::Events::Rule
@@ -92,7 +97,7 @@ Resources:
           policytype:
             - "auto insurance"
       Targets:
-        - Arn: !GetAtt AutoIngestionFunction.Arn
+        - Arn: !GetAtt AutoInsuranceLoadFunction.Arn
           Id: "AutoInsuranceRuleTarget"
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
@@ -133,7 +138,7 @@ Resources:
             Resource: !GetAtt AutoInsuranceQueue.Arn
             Condition:
               ArnEquals:
-                aws:SourceArn: !Ref EventBridgePolicy
+                aws:SourceArn: !Ref EventBus
       Queues:
         - !Ref AutoInsuranceQueue
   LifeInsuranceDynamoTable:
@@ -199,12 +204,9 @@ Resources:
           Properties:
             Queue: !Ref AutoInsuranceQueue
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   PolicyApi:
     Description: API Gateway endpoint URL for Prod stage for Policy Ingestion function
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/policy/new"
+    Value: !Sub "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/policy/new"
   PolingestionFunction:
     Description: Policy Ingestion Lambda Function ARN
     Value: !GetAtt PolingestionFunction.Arn
