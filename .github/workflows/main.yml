@@ -2,7 +2,9 @@
 # The workflow Creates static website using aws s3
 name: AWS example workflow
 on:
-  push
+  push:
+    branches:
+      - main
 
 # permission can be added at job level or workflow level    
 permissions:
