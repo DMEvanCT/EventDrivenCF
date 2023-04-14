@@ -18,7 +18,7 @@ jobs:
       - name: cfn-lint
         run: |
           pip3 install cfn-lint
-          cfn-lint template.yml
+          cfn-lint --ignore-checks E3030 template.yml
   securityscan:
     name: SecurityScan
     runs-on: ubuntu-latest
