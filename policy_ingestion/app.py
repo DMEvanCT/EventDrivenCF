@@ -12,7 +12,7 @@ def lambda_handler(event, context):
             {
                 'Source': 'laji_project.policydata',
                 'DetailType': 'policydata',
-                'Detail': json.dumps(event),
+                'Detail': json.dumps(event["body"]),
                 'EventBusName': 'PolicyEventBus'
             },
         ]
@@ -22,7 +22,7 @@ def lambda_handler(event, context):
             "statusCode": 200,
             "body": json.dumps({
             "Status": "Policy Submited",
-            "DataSent": json.dumps(event)
+            "DataSent": json.dumps(event["body"])
         }),
     }
 
