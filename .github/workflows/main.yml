@@ -11,22 +11,36 @@ permissions:
       id-token: write   # This is required for requesting the JWT
       contents: read    # This is required for actions/checkout
 jobs:
-  SAMDEPLOY:
+  scans:
+    uses: ./.github/workflows/scans.yml
+    name: Scans
+    with: 
+      account_name: ${{ needs.prereqs.outputs.account_name }}
+      account_id: ${{ needs.prereqs.outputs.account_id }}
+      environment: ${{ needs.prereqs.outputs.environment }}    
+    secrets:
+      GITHUB_OAUTH_TOKEN: ${{ secrets.HYPR_PAT }}
+      SLACK_WEBHOOK_URL: '${{ secrets.SLACK_WEBHOOK_URL }}'
+      SSH_KEY_DEVOPS: ${{ secrets.SSH_KEY_DEVOPS }}
+
+  sambuilddeploy:
     runs-on: ubuntu-latest
+    needs: [scans]
     steps:
       - name: Git clone the repository
         uses: actions/checkout@v3
-      - name: cfn-lint
-        run: |
-          pip3 install cfn-lint
-          cfn-lint template.yml
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::${{ secrets.SLALOM_ACCOUNT_ID }}:role/GithubEventLab
           role-session-name: eventlab
           aws-region: us-east-1
-      - name: Sam Build and Deploy 
+      - name: Install Sam and deploy
+        run: |
+          pip3 install aws-sam-cli
+      - name: sam build
         run: |
           sam build
+      - name: sam deploy
+        run: |
           sam deploy --config-env dev --no-confirm-changeset --parameter-overrides Env=dev

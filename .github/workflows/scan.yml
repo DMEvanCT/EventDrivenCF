@@ -1,0 +1,37 @@
+# Sample workflow to access AWS resources when workflow is tied to branch
+# The workflow Creates static website using aws s3
+name: Linters
+on:
+  pull_request:
+  workflow_call:
+
+# permission can be added at job level or workflow level    
+permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: read    # This is required for actions/checkout
+jobs:
+  cfnlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v3
+      - name: cfn-lint
+        run: |
+          pip3 install cfn-lint
+          cfn-lint template.yml
+  scan:
+    name: SecurityScan
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Run Checkov action
+      id: checkov
+      uses: bridgecrewio/checkov-action@master
+      with:
+          quiet: false # optional: display only failed checks
+          soft_fail: false # optional: do not return an error code if there are failed checks
+          framework: cloudformation # optional: run only on a specific infrastructure {cloudformation,terraform,kubernetes,all}
+          output_format: sarif # optional: the output format, one of: cli, json, junitxml, github_failed_only, or sarif. Default: sarif
+          download_external_modules: true # optional: download external terraform modules from public git repositories and terraform registry
+          log_level: DEBUG # optional: set log level. Default WARNING
