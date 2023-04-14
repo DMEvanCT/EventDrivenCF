@@ -18,7 +18,7 @@ Parameters:
   Env:
     Type: String
     Description: The name of the deployment stage(e.g dev, test, prod)
-    Default: Env
+    Default: dev
 
 Globals:
   Function:
@@ -57,7 +57,7 @@ Resources:
   MyApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: Env
+      StageName: !Ref Env
   
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
