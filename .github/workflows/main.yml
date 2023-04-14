@@ -12,7 +12,7 @@ permissions:
       contents: read    # This is required for actions/checkout
 jobs:
   scans:
-    uses: ./.github/workflows/scans.yml
+    uses: ./.github/workflows/scan.yml
     name: Scans
     with: 
       account_name: ${{ needs.prereqs.outputs.account_name }}
