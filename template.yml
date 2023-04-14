@@ -26,6 +26,7 @@ Globals:
     Tracing: Active
   Api:
     TracingEnabled: true
+
 Resources:
   PolingestionFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -57,6 +58,7 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Env
+  
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
     Properties:
@@ -65,16 +67,19 @@ Resources:
         Type: CLOUDFORMATION_STACK_1_0
         Query:
           StackIdentifier: !Ref AWS::StackId
+  
   ApplicationInsightsMonitoring:
     Type: AWS::ApplicationInsights::Application
     Properties:
       ResourceGroupName: !Sub "ApplicationInsight-SAM-${AWS::StackName}"
       AutoConfigurationEnabled: true
     DependsOn: ApplicationResourceGroup
+  
   EventBus:
     Type: AWS::Events::EventBus
     Properties:
       Name: PolicyEventBus     
+  
   LifeInsuranceRule:
     Type: AWS::Events::Rule
     Properties:
@@ -90,6 +95,7 @@ Resources:
       Targets:
         - Arn: !GetAtt LifeInsuranceLoadFunction.Arn
           Id: "LifeInsuranceRuleTarget"          
+  
   AutoInsuranceRule:
     Type: AWS::Events::Rule
     Properties:
@@ -105,14 +111,17 @@ Resources:
       Targets:
         - Arn: !GetAtt AutoInsuranceLoadFunction.Arn
           Id: "AutoInsuranceRuleTarget"
+  
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: LifeInsuranceQueue
+  
   AutoInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: AutoInsuranceQueue
+  
   LifeInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -131,6 +140,7 @@ Resources:
             Resource: !GetAtt LifeInsuranceQueue.Arn
       Queues:
         - !Ref LifeInsuranceQueue
+  
   AutoInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -147,6 +157,7 @@ Resources:
                 aws:SourceArn: !Ref EventBus
       Queues:
         - !Ref AutoInsuranceQueue
+  
   LifeInsuranceDynamoTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -158,6 +169,7 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       TableName: LifeInsuranceDynamoTable
+  
   AutoInsuranceDynamoTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -169,6 +181,7 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       TableName: AutoInsuranceDynamoTable
+  
   LifeInsuranceLoadFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -184,11 +197,7 @@ Resources:
       Policies:
         - SQSPollerPolicy:
             QueueName: !Ref LifeInsuranceQueue
-      Events:
-        LifeInsuranceQueue:
-          Type: SQS
-          Properties:
-            Queue: !Ref LifeInsuranceQueue
+  
   AutoInsuranceLoadFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -204,11 +213,6 @@ Resources:
       Policies:
         - SQSPollerPolicy:
             QueueName: !Ref AutoInsuranceQueue
-      Events:
-        AutoInsuranceQueue:
-          Type: SQS
-          Properties:
-            Queue: !Ref AutoInsuranceQueue
 Outputs:
   PolicyApi:
     Description: API Gateway endpoint URL for Prod stage for Policy Ingestion function
