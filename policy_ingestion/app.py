@@ -17,6 +17,13 @@ def lambda_handler(event, context):
             },
         ]
     )
-  return response
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+            "Status": "Policy Submited",
+            "DataSent": json.dumps(event)
+        }),
+    }
 
 
