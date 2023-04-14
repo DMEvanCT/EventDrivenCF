@@ -49,7 +49,7 @@ Resources:
             - Effect: Allow
               Action:
                 - events:PutEvents
-              Resource: !Ref EventBus
+              Resource: !GetAtt EventBus.Arn
 
 
   PolicyIngestionAPI:
