@@ -25,7 +25,7 @@ Globals:
     Timeout: 3
     Tracing: Active
   Api:
-    TracingEnabled: true
+    TracingEnabled: True
 
 Resources:
   PolingestionFunction:
@@ -37,28 +37,54 @@ Resources:
       Architectures:
         - arm64
       Events:
-        PolicyAPI:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+        PolicyRequest:
+          Type: Api
           Properties:
-            Path: /api/v1/policy/new
-            Method: post
-            RestApiId: !Ref MyApi
-            Auth:
-              ApiKeyRequired: true
-  ApiKey:
-    Type: 'AWS::ApiGateway::ApiKey'
-    Properties:
-      Name: PolicyApiKey
-      Description: CloudFormation API Key V1
-      Enabled: true
-      StageKeys: 
-        - RestApiId: !Ref MyApi
-          StageName: !Ref Env
-  MyApi:
+            Path: /api/v1/policy/create
+            Method: POST
+            RestApiId: !Ref PolicyIngestionAPI
+
+  PolicyIngestionAPI:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref Env
-  
+      EndpointConfiguration:
+        Type: REGIONAL
+
+  APIKeyPolicyIngestionService:
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn:
+      - PolicyIngestionAPI
+    Properties:
+      Description: "Key to make API call to policy ingestion engine"
+      Enabled: True
+      Name: APIKeyPolicyIngestionService
+
+  PolicyIngestionAPIKeyUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - APIKeyPolicyIngestionService
+    Properties:
+      ApiStages:
+        - ApiId: !Ref PolicyIngestionAPI
+          Stage: !Ref PolicyIngestionAPIStage
+      Description: "Usage plan to make API call to Ingestion Engine"
+      Quota:
+        Limit: 10000
+        Period: MONTH
+      Throttle:
+        BurstLimit: 100
+        RateLimit: 100
+
+
+  PolicyIngestionUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref APIKeyPolicyIngestionService
+      KeyType: API_KEY
+      UsagePlanId: !Ref PolicyIngestionAPIKeyUsagePlan
+ 
+
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
     Properties:
@@ -216,7 +242,7 @@ Resources:
 Outputs:
   PolicyApi:
     Description: API Gateway endpoint URL for Prod stage for Policy Ingestion function
-    Value: !Sub "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/policy/new"
+    Value: !Sub "https://${PolicyIngestionAPI}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/policy/new"
   PolingestionFunction:
     Description: Policy Ingestion Lambda Function ARN
     Value: !GetAtt PolingestionFunction.Arn
