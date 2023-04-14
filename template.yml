@@ -15,7 +15,7 @@ Metadata:
       ignore_checks:
         - E3030
 Parameters:
-  Env:
+  StageName:
     Type: String
     Description: The name of the deployment stage(e.g dev, test, prod)
     Default: dev
@@ -53,11 +53,11 @@ Resources:
       Enabled: true
       StageKeys: 
         - RestApiId: !Ref MyApi
-          StageName: !Ref Env
+          StageName: !Ref StageName
   MyApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: !Ref Env
+      StageName: !Ref StageName
   
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
