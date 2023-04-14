@@ -124,7 +124,7 @@ Resources:
         source:
           - "laji_project.policydata"
         detail:
-          policytype:
+          policyType:
             - "life insurance"
       Targets:
         - Arn: !GetAtt LifeInsuranceLoadFunction.Arn
@@ -140,7 +140,7 @@ Resources:
         source:
           - "laji_project.policydata"
         detail:
-          policytype:
+          policyType:
             - "auto insurance"
       Targets:
         - Arn: !GetAtt AutoInsuranceLoadFunction.Arn
