@@ -19,7 +19,7 @@ jobs:
         run: |
           pip3 install cfn-lint
           cfn-lint template.yml
-  scan:
+  securityscan:
     name: SecurityScan
     runs-on: ubuntu-latest
     steps:
