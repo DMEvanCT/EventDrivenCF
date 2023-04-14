@@ -40,3 +40,15 @@ s3_prefix = "event-drive"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
+
+
+[prod]
+[prod.deploy]
+[prod.deploy.parameters]
+stack_name = "event-drive"
+# S3 bucket for code. 
+s3_bucket = "aws-slalom-serverless-repo"
+s3_prefix = "event-drive-prod"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"

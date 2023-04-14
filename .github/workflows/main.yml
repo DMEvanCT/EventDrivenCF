@@ -38,4 +38,4 @@ jobs:
           sam build
       - name: sam deploy
         run: |
-          sam deploy --config-env dev --no-confirm-changeset --parameter-overrides Env=dev
+          sam deploy --config-env prod --no-confirm-changeset --parameter-overrides Env=Prod
