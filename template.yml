@@ -43,6 +43,12 @@ Resources:
             Path: /api/v1/policy/create
             Method: POST
             RestApiId: !Ref PolicyIngestionAPI
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSXrayWriteOnlyAccess
+        - AWSXrayDaemonWriteAccess
+        - AWSXrayFullAccess
+        - EventBridgeFullAccess
 
   PolicyIngestionAPI:
     Type: AWS::Serverless::Api
