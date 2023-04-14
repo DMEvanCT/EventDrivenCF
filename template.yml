@@ -46,8 +46,6 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
         - AWSXrayWriteOnlyAccess
-        - AWSXrayDaemonWriteAccess
-        - AWSXrayFullAccess
         - EventBridgeFullAccess
 
   PolicyIngestionAPI:
