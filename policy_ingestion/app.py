@@ -6,8 +6,8 @@ import boto3
 
 def lambda_handler(event, context):
   # Put event into event bridge with source laji_project.policydata
-  events = boto3.client('events')
-  response = events.put_events(
+    events = boto3.client('events')
+    response = events.put_events(
         Entries=[
             {
                 'Source': 'laji_project.policydata',
@@ -19,11 +19,10 @@ def lambda_handler(event, context):
     )
 
     return {
-        "statusCode": 200,
-        "body": json.dumps({
+            "statusCode": 200,
+            "body": json.dumps({
             "Status": "Policy Submited",
             "DataSent": json.dumps(event)
         }),
     }
-
 
