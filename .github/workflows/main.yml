@@ -14,15 +14,6 @@ jobs:
   scans:
     uses: ./.github/workflows/scan.yml
     name: Scans
-    with: 
-      account_name: ${{ needs.prereqs.outputs.account_name }}
-      account_id: ${{ needs.prereqs.outputs.account_id }}
-      environment: ${{ needs.prereqs.outputs.environment }}    
-    secrets:
-      GITHUB_OAUTH_TOKEN: ${{ secrets.HYPR_PAT }}
-      SLACK_WEBHOOK_URL: '${{ secrets.SLACK_WEBHOOK_URL }}'
-      SSH_KEY_DEVOPS: ${{ secrets.SSH_KEY_DEVOPS }}
-
   sambuilddeploy:
     runs-on: ubuntu-latest
     needs: [scans]
