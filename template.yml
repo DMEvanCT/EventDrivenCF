@@ -18,7 +18,7 @@ Parameters:
   StageName:
     Type: String
     Description: The name of the deployment stage(e.g dev, test, prod)
-    Default: dev
+    Default: Prod
 
 Globals:
   Function:
