@@ -23,6 +23,7 @@ def lambda_handler(event, context):
             "body": json.dumps({
             "Status": "Policy Submited",
             "DataSent": json.dumps(event["body"])
+            "PolicyData": json.dumps(event["body"]["policyType"])
         }),
     }
 
