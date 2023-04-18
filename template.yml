@@ -129,7 +129,7 @@ Resources:
       Targets:
         - Arn: !GetAtt LifeInsuranceLoadFunction.Arn
           Id: "LifeInsuranceRuleTarget"
-      State: Enabled
+      State: ENABLED
   
   AutoInsuranceRule:
     Type: AWS::Events::Rule
@@ -146,6 +146,7 @@ Resources:
       Targets:
         - Arn: !GetAtt AutoInsuranceLoadFunction.Arn
           Id: "AutoInsuranceRuleTarget"
+      State: ENABLED
   
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
