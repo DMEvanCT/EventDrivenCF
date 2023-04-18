@@ -133,7 +133,7 @@ Resources:
             MaximumRetryAttempts: 4
             MaximumEventAgeInSeconds: 400
           DeadLetterConfig:
-            Arn: !GetAtt LifeInsuranceQueueDLQ.Arn
+            Arn: !GetAtt LifeInsuranceDLQ.Arn
       State: ENABLED
   
   AutoInsuranceRule:
