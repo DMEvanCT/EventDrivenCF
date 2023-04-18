@@ -122,13 +122,14 @@ Resources:
       EventBusName: !Ref EventBus
       EventPattern:
         source:
-          - "laji_project.policydata"
+          - laji_project.policydata
         detail:
           policyType:
-            - "life insurance"
+            - life insurance
       Targets:
         - Arn: !GetAtt LifeInsuranceLoadFunction.Arn
-          Id: "LifeInsuranceRuleTarget"          
+          Id: "LifeInsuranceRuleTarget"
+      State: Enabled
   
   AutoInsuranceRule:
     Type: AWS::Events::Rule

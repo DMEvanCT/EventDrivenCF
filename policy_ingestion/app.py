@@ -13,7 +13,7 @@ def lambda_handler(event, context):
         Entries=[
             {
                 'Source': 'laji_project.policydata',
-                'DetailType': 'policydata',
+                'DetailType': 'PolicyCreated',
                 'Detail': json.dumps(body),
                 'EventBusName': 'PolicyEventBus'
             },
