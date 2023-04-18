@@ -127,8 +127,13 @@ Resources:
           policyType:
             - life insurance
       Targets:
-        - Arn: !GetAtt LifeInsuranceLoadFunction.Arn
-          Id: "LifeInsuranceRuleTarget"
+        - Arn: !GetAtt LifeInsuranceQueue.Arn
+          Id: LifeInsuranceRuleTarget
+          RetryPolicy:
+            MaximumRetryAttempts: 4
+            MaximumEventAgeInSeconds: 400
+          DeadLetterConfig:
+            Arn: !GetAtt LifeInsuranceQueueDLQ.Arn
       State: ENABLED
   
   AutoInsuranceRule:
@@ -144,19 +149,34 @@ Resources:
           policyType:
             - "auto insurance"
       Targets:
-        - Arn: !GetAtt AutoInsuranceLoadFunction.Arn
-          Id: "AutoInsuranceRuleTarget"
+        - Arn: !GetAtt AutoInsuranceQueue.Arn
+          Id: AutoInsuranceRuleTarget
+          RetryPolicy:
+            MaximumRetryAttempts: 4
+            MaximumEventAgeInSeconds: 400
+          DeadLetterConfig:
+            Arn: !GetAtt AutoInsuranceQueueDLQ.Arn
       State: ENABLED
   
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: LifeInsuranceQueue
-  
+
+  LifeInsuranceDLQ:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      QueueName: LifeInsuranceQueueDLQ
+
   AutoInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: AutoInsuranceQueue
+
+  AutoInsuranceQueueDLQ:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      QueueName: AutoInsuranceQueueDLQ
   
   LifeInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
