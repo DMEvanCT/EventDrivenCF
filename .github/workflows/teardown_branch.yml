@@ -2,9 +2,8 @@
 # The workflow Creates static website using aws s3
 name: AWS SAM DELETE Branch - Feature Hotfix Bugfix
 on:
- #pull_request_review:
-   #types: [submitted]
-  pull_request:
+  pull_request_review:
+    types: [submitted]
     branches:
       - 'feature/*'
       - 'hotfix/*'
@@ -19,7 +18,7 @@ permissions:
 jobs:
   samDeleteBranchEnvironment:
     runs-on: ubuntu-latest
-    #if: github.event.review.state == 'approved'
+    if: github.event.review.state == 'approved'
     steps:
       - name: Git clone the repository
         uses: actions/checkout@v3
@@ -39,7 +38,7 @@ jobs:
 
       - name: sam delete stack
         run: |
-          branch_name="${{ github.event.pull_request.head.ref }}"
+          branch_name="${{ github.event.review.headRef }}"
           converted_branch_name=$(echo "$branch_name" | tr '/' '-' | tr '_' '-')
           echo "$converted_branch_name"
           sam delete --stack-name "$converted_branch_name" --s3-bucket aws-slalom-serverless-repo --s3-prefix "$converted_branch_name" --region us-east-1 --no-prompts
