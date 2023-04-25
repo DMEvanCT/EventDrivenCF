@@ -39,7 +39,7 @@ jobs:
       - name: sam delete stack
         run: |
           echo "Source branch: ${{ github.event.pull_request.head.ref }}"
-          branch_name="${{ github.event.review.head.ref }}"
+          branch_name="${{ github.event.pull_request.head.ref }}"
           converted_branch_name=$(echo "$branch_name" | tr '/' '-' | tr '_' '-')
           echo "$converted_branch_name"
           sam delete --stack-name "$converted_branch_name" --s3-bucket aws-slalom-serverless-repo --s3-prefix "$converted_branch_name" --region us-east-1 --no-prompts
