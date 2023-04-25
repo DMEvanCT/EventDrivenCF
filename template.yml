@@ -272,7 +272,7 @@ Resources:
 Outputs:
   PolicyApi:
     Description: API Gateway endpoint URL for Prod stage for Policy Ingestion function
-    Value: !Sub "https://${PolicyIngestionAPI}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/v1/policy/new"
+    Value: !Sub "https://${PolicyIngestionAPI}.execute-api.${AWS::Region}.amazonaws.com/${Env}/api/v1/policy/new"
   PolingestionFunction:
     Description: Policy Ingestion Lambda Function ARN
     Value: !GetAtt PolingestionFunction.Arn
