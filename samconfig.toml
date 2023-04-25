@@ -44,10 +44,10 @@ capabilities = "CAPABILITY_IAM"
 [nonprodue1]
 [nonprodue1.deploy]
 [nonprodue1.deploy.parameters]
-stack_name = "event-drive"
+stack_name = "event-drive-nonprod"
 # S3 bucket for code.
 s3_bucket = "aws-slalom-serverless-repo"
-s3_prefix = "event-drive-prod"
+s3_prefix = "event-drive"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
@@ -58,7 +58,7 @@ capabilities = "CAPABILITY_IAM"
 stack_name = "event-drive"
 # S3 bucket for code. 
 s3_bucket = "aws-slalom-serverless-repo"
-s3_prefix = "event-drive-prod"
+s3_prefix = "event-drive"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
