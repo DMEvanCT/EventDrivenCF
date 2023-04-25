@@ -9,6 +9,7 @@ on:
       - 'feature/*'
       - 'hotfix/*'
       - 'bugfix/*'
+      - 'main'
 
 
 # permission can be added at job level or workflow level
