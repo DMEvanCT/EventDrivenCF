@@ -33,12 +33,10 @@ jobs:
       - name: Install Sam and deploy
         run: |
           pip3 install aws-sam-cli
-      - name: sam build
-        run: |
-          sam build
+
       - name: sam deploy
         run: |
           branch_name="$GITHUB_HEAD_REF"
           converted_branch_name=$(echo "$branch_name" | tr '/' '-' | tr '_' '-')
           echo "$converted_branch_name"
-          sam delete --stack-name "feature-$converted_branch_name" --s3-bucket aws-slalom-serverless-repo --s3-prefix "$converted_branch_name" --region us-east-1 --capabilities CAPABILITY_IAM --no-confirm-changeset
+          sam delete --stack-name "feature-$converted_branch_name" --s3-bucket aws-slalom-serverless-repo --s3-prefix "$converted_branch_name" --region us-east-1 --no-prompts
