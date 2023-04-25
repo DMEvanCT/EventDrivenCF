@@ -1,0 +1,45 @@
+# Sample workflow to access AWS resources when workflow is tied to branch
+# The workflow Creates static website using aws s3
+name: AWS SAM DELETE Branch - Feature Hotfix Bugfix
+on:
+  pull_request_review:
+    types: [submitted]
+    branches:
+      - 'feature/*'
+      - 'hotfix/*'
+      - 'bugfix/*'
+      - 'main'
+
+
+# permission can be added at job level or workflow level
+permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: read    # This is required for actions/checkout
+jobs:
+  samDeleteBranchEnvironment:
+    runs-on: ubuntu-latest
+    if: github.event.review.state == 'approved'
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.SLALOM_ACCOUNT_ID }}:role/GithubEventLab
+          role-session-name: eventlab
+          aws-region: us-east-1
+      - name: Install Sam and deploy
+        run: |
+          pip3 install aws-sam-cli
+
+      - name: sam delete stack
+        run: |
+          echo "Source branch: ${{ github.event.pull_request.head.ref }}"
+          branch_name="${{ github.event.pull_request.head.ref }}"
+          converted_branch_name=$(echo "$branch_name" | tr '/' '-' | tr '_' '-')
+          echo "$converted_branch_name"
+          sam delete --stack-name "$converted_branch_name" --s3-bucket aws-slalom-serverless-repo --s3-prefix "$converted_branch_name" --region us-east-1 --no-prompts

@@ -1,0 +1,46 @@
+# Sample workflow to access AWS resources when workflow is tied to branch
+# The workflow Creates static website using aws s3
+name: AWS SAM Deploy Branch - Feature Hotfix Bugfix
+on:
+  push:
+    branches:
+      - 'feature/*'
+      - 'hotfix/*'
+      - 'bugfix/*'
+
+# permission can be added at job level or workflow level
+permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: read    # This is required for actions/checkout
+jobs:
+  scans:
+    uses: ./.github/workflows/scan.yml
+    name: Scans
+  deployBranchEnvironment:
+    runs-on: ubuntu-latest
+    needs: [scans]
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.SLALOM_ACCOUNT_ID }}:role/GithubEventLab
+          role-session-name: eventlab
+          aws-region: us-east-1
+      - name: Install Sam
+        run: |
+          pip3 install aws-sam-cli
+      - name: sam build
+        run: |
+          sam build
+      - name: sam deploy
+        run: |
+          branch_name="$GITHUB_REF_NAME"
+          converted_branch_name=$(echo "$branch_name" | tr '/' '-' | tr '_' '-')
+          echo "$converted_branch_name"
+          sam deploy --stack-name "$converted_branch_name" --s3-bucket aws-slalom-serverless-repo --s3-prefix "$converted_branch_name" --region us-east-1 --capabilities CAPABILITY_IAM --no-confirm-changeset --parameter-overrides Env="feature-$converted_branch_name"

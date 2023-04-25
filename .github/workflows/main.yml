@@ -14,7 +14,7 @@ jobs:
   scans:
     uses: ./.github/workflows/scan.yml
     name: Scans
-  sambuilddeploy:
+  deployNonProduction:
     runs-on: ubuntu-latest
     needs: [scans]
     steps:
@@ -36,6 +36,31 @@ jobs:
       - name: sam build
         run: |
           sam build
-      - name: sam deploy
+      - name: sam deploy NonProd
         run: |
-          sam deploy --config-env prod --no-confirm-changeset --parameter-overrides Env=Prod
+          sam deploy --config-env nonprodue1 --no-confirm-changeset --parameter-overrides Env=NonProd
+  deployProduction:
+    runs-on: ubuntu-latest
+    needs: [deployNonProduction]
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.SLALOM_ACCOUNT_ID }}:role/GithubEventLab
+          role-session-name: eventlab
+          aws-region: us-east-1
+      - name: Install Sam and deploy
+        run: |
+          pip3 install aws-sam-cli
+      - name: sam build
+        run: |
+          sam build
+      - name: sam deploy prod
+        run: |
+          sam deploy --config-env produe1 --no-confirm-changeset --parameter-overrides Env=Prod
