@@ -2,21 +2,20 @@
 # The workflow Creates static website using aws s3
 name: AWS SAM DELETE Feature
 on:
-  pull_request:
-    branches:
-      - main
+ pull_request_review:
+   types: [submitted]
+   branches:
+     - feature/*
+
 
 # permission can be added at job level or workflow level
 permissions:
       id-token: write   # This is required for requesting the JWT
       contents: read    # This is required for actions/checkout
 jobs:
-  scans:
-    uses: ./.github/workflows/scan.yml
-    name: Scans
-  sambuilddeploy:
+  samDeleteFeature:
     runs-on: ubuntu-latest
-    needs: [scans]
+    if: github.event.review.state == 'approved'
     steps:
       - name: Git clone the repository
         uses: actions/checkout@v3
