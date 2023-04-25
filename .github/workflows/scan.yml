@@ -21,11 +21,11 @@ jobs:
           pip3 install cfn-lint
           cfn-lint template.yml
       - name: InitializeCodeQL
-        uses: github/codeql-action/init@v1
+        uses: github/codeql-action/init@v2
         with:
           languages: python
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v1
+        uses: github/codeql-action/analyze@v2
         with:
           languages: python
           github_token: ${{ secrets.GITHUB_TOKEN }}
