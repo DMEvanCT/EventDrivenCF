@@ -38,6 +38,7 @@ jobs:
 
       - name: sam delete stack
         run: |
+          echo "Source branch: ${{ github.event.pull_request.head.ref }}"
           branch_name="${{ github.event.review.head.ref }}"
           converted_branch_name=$(echo "$branch_name" | tr '/' '-' | tr '_' '-')
           echo "$converted_branch_name"
