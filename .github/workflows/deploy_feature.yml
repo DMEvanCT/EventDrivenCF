@@ -41,4 +41,4 @@ jobs:
           branch_name="$GITHUB_REF_NAME"
           converted_branch_name=$(echo "$branch_name" | sed 's/\//-/g')
           echo "$converted_branch_name"
-          sam deploy --stack-name feature-$converted_branch_name  --s3-bucket  aws-slalom-serverless-repo  --s3-prefix feature-$converted_branch_name --region us-east-1 --capabilities CAPABILITY_IAM --no-confirm-changeset --parameter-overrides Env=feature-$converted_branch_name
+          sam deploy --stack-name feature-$converted_branch_name  --s3-bucket aws-slalom-serverless-repo  --s3-prefix feature-$converted_branch_name --region us-east-1 --capabilities CAPABILITY_IAM --no-confirm-changeset --parameter-overrides Env=feature-$converted_branch_name
