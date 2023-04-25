@@ -42,9 +42,20 @@ confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 
 
-[prod]
-[prod.deploy]
-[prod.deploy.parameters]
+[nonprodue1]
+[nonprodue1.deploy]
+[nonprodue1.deploy.parameters]
+stack_name = "event-drive"
+# S3 bucket for code.
+s3_bucket = "aws-slalom-serverless-repo"
+s3_prefix = "event-drive-prod"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+
+[produe1]
+[produe1.deploy]
+[produe1.deploy.parameters]
 stack_name = "event-drive"
 # S3 bucket for code. 
 s3_bucket = "aws-slalom-serverless-repo"
