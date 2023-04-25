@@ -1,42 +1,45 @@
 import json
+import os
+
+import boto3
 
 # import requests
 
 
 def lambda_handler(event, context):
-    """Sample pure Lambda function
+    queue_url = os.getenv('SQS_QUEUE')
+    # Create SQS client
+    sqs = boto3.client('sqs')
+    # Create DynamoDB client
+    dynamodb = boto3.client('dynamodb')
+    # Get item from queue
+    sqs_message = sqs.receive_message(
+        QueueUrl=queue_url,
+        AttributeNames=[
+            'SentTimestamp'
+        ],
+        MaxNumberOfMessages=10,
+        MessageAttributeNames=[
+            'All'
+        ],
+        VisibilityTimeout=15,
+        WaitTimeSeconds=10
+    )
 
-    Parameters
-    ----------
-    event: dict, required
-        API Gateway Lambda Proxy Input Format
+    if 'Messages' in sqs_message:
+        message = sqs_message['Messages'][0]
+        message_body = message['Body']
 
-        Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
+        message_parsed = json.loads(message_body)
 
-    context: object, required
-        Lambda Context runtime methods and attributes
+        # Delete the message from the queue
+        receipt_handle = message['ReceiptHandle']
+        sqs.delete_message(
+            QueueUrl=queue_url,
+            ReceiptHandle=receipt_handle
+        )
 
-        Context doc: https://docs.aws.amazon.com/lambda/latest/dg/python-context-object.html
+    else:
+        print("No messages received.")
+        return None
 
-    Returns
-    ------
-    API Gateway Lambda Proxy Output Format: dict
-
-        Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
-    """
-
-    # try:
-    #     ip = requests.get("http://checkip.amazonaws.com/")
-    # except requests.RequestException as e:
-    #     # Send some context about this error to Lambda Logs
-    #     print(e)
-
-    #     raise e
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "message": "hello world",
-            # "location": ip.text.replace("\n", "")
-        }),
-    }
