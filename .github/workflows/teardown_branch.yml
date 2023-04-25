@@ -4,11 +4,11 @@ name: AWS SAM DELETE Branch - Feature Hotfix Bugfix
 on:
  #pull_request_review:
    #types: [submitted]
-  pull_request:
-    branches:
-      - 'feature/*'
-      - 'hotfix/*'
-      - 'bugfix/*'
+pull_request:
+  branches:
+    - 'feature/*'
+    - 'hotfix/*'
+    - 'bugfix/*'
 
 
 # permission can be added at job level or workflow level
