@@ -66,7 +66,7 @@ Resources:
     Properties:
       Description: "Key to make API call to policy ingestion engine"
       Enabled: True
-      Name: APIKeyPolicyIngestionService
+      Name: !Sub "APIKeyPolicyIngestionService-${AWS::StackName}"
 
   PolicyIngestionAPIKeyUsagePlan:
     Type: AWS::ApiGateway::UsagePlan
@@ -112,12 +112,12 @@ Resources:
   EventBus:
     Type: AWS::Events::EventBus
     Properties:
-      Name: PolicyEventBus     
+      Name: !Sub "PolicyEventBus-${AWS::StackName}"
   
   LifeInsuranceRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: LifeInsuranceRule
+      Name: !Sub "LifeInsuranceRule-${AWS::StackName}"
       Description: "Rule to route life insurance policy data"
       EventBusName: !Ref EventBus
       EventPattern:
@@ -139,7 +139,7 @@ Resources:
   AutoInsuranceRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: AutoInsuranceRule
+      Name: !Sub "AutoInsuranceRule-${AWS::StackName}"
       Description: "Rule to route auto insurance policy data"
       EventBusName: !Ref EventBus
       EventPattern:
@@ -161,22 +161,22 @@ Resources:
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
-      QueueName: LifeInsuranceQueue
+      QueueName: !Sub "LifeInsuranceQueue-${AWS::StackName}"
 
   LifeInsuranceDLQ:
     Type: 'AWS::SQS::Queue'
     Properties:
-      QueueName: LifeInsuranceQueueDLQ
+      QueueName: !Sub "LifeInsuranceQueueDLQ-${AWS::StackName}"
 
   AutoInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
-      QueueName: AutoInsuranceQueue
+      QueueName: !Sub "AutoInsuranceQueue--${AWS::StackName}"
 
   AutoInsuranceQueueDLQ:
     Type: 'AWS::SQS::Queue'
     Properties:
-      QueueName: AutoInsuranceQueueDLQ
+      QueueName: !Sub "AutoInsuranceQueueDLQ-${AWS::StackName}"
   
   LifeInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -224,7 +224,7 @@ Resources:
         - AttributeName: policyId
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
-      TableName: LifeInsuranceDynamoTable
+      TableName: !Sub "LifeInsuranceDynamoTable-${AWS::StackName}"
   
   AutoInsuranceDynamoTable:
     Type: AWS::DynamoDB::Table
@@ -236,7 +236,7 @@ Resources:
         - AttributeName: policyId
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
-      TableName: AutoInsuranceDynamoTable
+      TableName: !Sub "AutoInsuranceDynamoTable-${AWS::StackName}"
   
   LifeInsuranceLoadFunction:
     Type: AWS::Serverless::Function
