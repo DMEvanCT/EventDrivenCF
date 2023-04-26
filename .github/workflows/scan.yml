@@ -35,7 +35,7 @@ jobs:
           languages: python
           github_token: ${{ secrets.GITHUB_TOKEN }}
   brideCrewScan:
-    name: SecurityScan
+    name: IACSecurityScan
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
