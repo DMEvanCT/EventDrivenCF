@@ -24,6 +24,12 @@ Globals:
   Function:
     Timeout: 3
     Tracing: Active
+    VpcConfig:
+      SecurityGroupIds:
+        - sg-0d494c6ad1b4d3743
+      SubnetIds:
+        - subnet-06ef0b0a08ad250be
+        - subnet-01669cf8673622f57
   Api:
     TracingEnabled: True
 
@@ -34,6 +40,16 @@ Resources:
       CodeUri: policy_ingestion/
       Handler: app.lambda_handler
       Runtime: python3.10
+      ReservedConcurrentExecutions: 100
+      DeadLetterQueue:
+        Type : SQS
+        TargetArn: !Ref FunctionQueueDLQ
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-0d494c6ad1b4d3743
+        SubnetIds:
+          - subnet-061ca37a9cf59a4f0
+          - subnet-0fd5edd109b239b8f
       Architectures:
         - arm64
       Events:
@@ -56,6 +72,8 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref Env
+      TracingEnabled: True
+      CacheClusterEnabled: True
       EndpointConfiguration:
         Type: REGIONAL
 
@@ -158,25 +176,57 @@ Resources:
             Arn: !GetAtt AutoInsuranceQueueDLQ.Arn
       State: ENABLED
   
+  InsuranceKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: My KMS key
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id: key-default-1
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - kms:*
+            Resource: '*'
+
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: !Sub "LifeInsuranceQueue-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
 
   LifeInsuranceDLQ:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: !Sub "LifeInsuranceQueueDLQ-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
 
   AutoInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: !Sub "AutoInsuranceQueue--${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
 
   AutoInsuranceQueueDLQ:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: !Sub "AutoInsuranceQueueDLQ-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
+  
+  FunctionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "FunctionQueueDLQ-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
+
+  FunctionQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "FunctionQueueDLQ-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
   
   LifeInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -225,6 +275,11 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       TableName: !Sub "LifeInsuranceDynamoTable-${AWS::StackName}"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
   
   AutoInsuranceDynamoTable:
     Type: AWS::DynamoDB::Table
@@ -237,6 +292,11 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       TableName: !Sub "AutoInsuranceDynamoTable-${AWS::StackName}"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
   
   LifeInsuranceLoadFunction:
     Type: AWS::Serverless::Function
@@ -244,15 +304,29 @@ Resources:
       CodeUri: life_insurance_load/
       Handler: app.lambda_handler
       Runtime: python3.10
+      ReservedConcurrentExecutions: 100
       Architectures:
         - arm64
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
+          MY_ENCRYPTED_VARIABLE: !Sub "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}/{{resolve:ssm:/my-encrypted-variable:version}}}"
           SQS_QUEUE: !Ref LifeInsuranceQueue
+      DeadLetterQueue:
+        Type : SQS
+        TargetArn: !Ref FunctionQueueDLQ
       Policies:
         - SQSPollerPolicy:
             QueueName: !Ref LifeInsuranceQueue
+
+  LifeLambdaKMSKeyPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'kms:Decrypt'
+      FunctionName: !Ref LifeInsuranceLoadFunction
+      Principal: lambda.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !GetAtt InsuranceKMSKey.Arn
   
   AutoInsuranceLoadFunction:
     Type: AWS::Serverless::Function
@@ -260,15 +334,30 @@ Resources:
       CodeUri: auto_insurance_load/
       Handler: app.lambda_handler
       Runtime: python3.10
+      ReservedConcurrentExecutions: 100
       Architectures:
         - arm64
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref AutoInsuranceDynamoTable
           SQS_QUEUE: !Ref AutoInsuranceQueue
+          MY_ENCRYPTED_VARIABLE: !Sub "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}/{{resolve:ssm:/my-encrypted-variable:version}}}"
+      DeadLetterQueue:
+        Type : SQS
+        TargetArn: !Ref FunctionQueueDLQ
       Policies:
         - SQSPollerPolicy:
             QueueName: !Ref AutoInsuranceQueue
+
+  AutoLambdaKMSKeyPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'kms:Decrypt'
+      FunctionName: !Ref AutoInsuranceLoadFunction
+      Principal: lambda.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !GetAtt InsuranceKMSKey.Arn
+  
 Outputs:
   PolicyApi:
     Description: API Gateway endpoint URL for Prod stage for Policy Ingestion function
