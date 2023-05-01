@@ -228,6 +228,40 @@ Resources:
       QueueName: !Sub "FunctionQueueDLQ-${AWS::StackName}"
       KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
   
+  LifeFunctionQueueDLQPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LifeInsuranceLoadFunction
+      Action: "sqs:SendMessage"
+      Principal: "sqs.amazonaws.com"
+      SourceArn: !GetAtt LifeFunctionEventSourceMapping.Arn
+    
+  AutoFunctionQueueDLQPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt AutoInsuranceLoadFunction
+      Action: "sqs:SendMessage"
+      Principal: "sqs.amazonaws.com"
+      SourceArn: !GetAtt AutoFunctionEventSourceMapping.Arn
+    
+  LifeFunctionEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: <ARN of the event source>
+      FunctionName: !GetAtt LifeInsuranceLoadFunction.Arn
+      StartingPosition: LATEST
+
+  AutoFunctionEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: <ARN of the event source>
+      FunctionName: !GetAtt AutoInsuranceLoadFunction.Arn
+      StartingPosition: LATEST
+  
   LifeInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -297,7 +331,7 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
-  
+
   LifeInsuranceLoadFunction:
     Type: AWS::Serverless::Function
     Properties:
