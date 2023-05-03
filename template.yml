@@ -44,12 +44,6 @@ Resources:
       DeadLetterQueue:
         Type : SQS
         TargetArn: !Ref FunctionQueueDLQ
-      VpcConfig:
-        SecurityGroupIds:
-          - sg-0d494c6ad1b4d3743
-        SubnetIds:
-          - subnet-061ca37a9cf59a4f0
-          - subnet-0fd5edd109b239b8f
       Architectures:
         - arm64
       Events:
@@ -76,6 +70,9 @@ Resources:
       CacheClusterEnabled: True
       EndpointConfiguration:
         Type: REGIONAL
+      AccessLogSetting:
+        DestinationArn: !GetAtt PolicyIngestionAPIAccessLogGroup.Arn
+        Format: '$context.identity.sourceIp - [$context.requestTime] "$context.httpMethod $context.resourcePath $context.protocol" $context.status $context.responseLength "$context.requestId"'
 
   APIKeyPolicyIngestionService:
     Type: AWS::ApiGateway::ApiKey
@@ -102,6 +99,10 @@ Resources:
         BurstLimit: 100
         RateLimit: 100
 
+  PolicyIngestionAPIAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/api-gateway/PolicyIngestionAPIAccessLogGroup
 
   PolicyIngestionUsagePlanKey:
     Type: AWS::ApiGateway::UsagePlanKey
@@ -191,6 +192,8 @@ Resources:
             Action:
               - kms:*
             Resource: '*'
+      EnableKeyRotation: true
+      KeyUsage: ENCRYPT_DECRYPT
 
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
@@ -231,18 +234,18 @@ Resources:
   LifeFunctionQueueDLQPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !GetAtt LifeInsuranceLoadFunction
+      FunctionName: !Ref LifeInsuranceLoadFunction
       Action: "sqs:SendMessage"
       Principal: "sqs.amazonaws.com"
-      SourceArn: !GetAtt LifeFunctionEventSourceMapping.Arn
-    
+      SourceArn: !GetAtt LifeFunctionEventSourceMapping.EventSourceArn
+
   AutoFunctionQueueDLQPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !GetAtt AutoInsuranceLoadFunction
+      FunctionName: !Ref AutoInsuranceLoadFunction
       Action: "sqs:SendMessage"
       Principal: "sqs.amazonaws.com"
-      SourceArn: !GetAtt AutoFunctionEventSourceMapping.Arn
+      SourceArn: !GetAtt AutoFunctionEventSourceMapping.Arn.EventSourceArn
     
   LifeFunctionEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
@@ -344,7 +347,7 @@ Resources:
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
-          MY_ENCRYPTED_VARIABLE: !Sub "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}/{{resolve:ssm:/my-encrypted-variable:version}}}"
+          MY_ENCRYPTED_VARIABLE: "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}/{{resolve:ssm:/my-encrypted-variable:version}}}"
           SQS_QUEUE: !Ref LifeInsuranceQueue
       DeadLetterQueue:
         Type : SQS
@@ -375,7 +378,7 @@ Resources:
         Variables:
           DYNAMODB_TABLE: !Ref AutoInsuranceDynamoTable
           SQS_QUEUE: !Ref AutoInsuranceQueue
-          MY_ENCRYPTED_VARIABLE: !Sub "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}/{{resolve:ssm:/my-encrypted-variable:version}}}"
+          MY_ENCRYPTED_VARIABLE: "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}/{{resolve:ssm:/my-encrypted-variable:version}}}"
       DeadLetterQueue:
         Type : SQS
         TargetArn: !Ref FunctionQueueDLQ
