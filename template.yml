@@ -103,6 +103,8 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /aws/api-gateway/PolicyIngestionAPIAccessLogGroup
+      RetentionInDays: 7
+      KmsKeyId: !Ref InsuranceKMSKey
 
   PolicyIngestionUsagePlanKey:
     Type: AWS::ApiGateway::UsagePlanKey
@@ -237,7 +239,7 @@ Resources:
       FunctionName: !Ref LifeInsuranceLoadFunction
       Action: "sqs:SendMessage"
       Principal: "sqs.amazonaws.com"
-      SourceArn: !GetAtt LifeFunctionEventSourceMapping.EventSourceArn
+
 
   AutoFunctionQueueDLQPermission:
     Type: AWS::Lambda::Permission
@@ -245,25 +247,25 @@ Resources:
       FunctionName: !Ref AutoInsuranceLoadFunction
       Action: "sqs:SendMessage"
       Principal: "sqs.amazonaws.com"
-      SourceArn: !GetAtt AutoFunctionEventSourceMapping.Arn.EventSourceArn
+ 
     
   LifeFunctionEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
       BatchSize: 10
       Enabled: true
-      EventSourceArn: <ARN of the event source>
-      FunctionName: !GetAtt LifeInsuranceLoadFunction.Arn
-      StartingPosition: LATEST
+      EventSourceArn: !GetAtt LifeInsuranceQueue.Arn
+      FunctionName: !Ref LifeInsuranceLoadFunction
+
 
   AutoFunctionEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
       BatchSize: 10
       Enabled: true
-      EventSourceArn: <ARN of the event source>
-      FunctionName: !GetAtt AutoInsuranceLoadFunction.Arn
-      StartingPosition: LATEST
+      EventSourceArn: !GetAtt AutoInsuranceQueue.Arn
+      FunctionName: !Ref AutoInsuranceLoadFunction
+
   
   LifeInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -378,7 +380,7 @@ Resources:
         Variables:
           DYNAMODB_TABLE: !Ref AutoInsuranceDynamoTable
           SQS_QUEUE: !Ref AutoInsuranceQueue
-          MY_ENCRYPTED_VARIABLE: "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}/{{resolve:ssm:/my-encrypted-variable:version}}}"
+          MY_ENCRYPTED_VARIABLE: "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}"
       DeadLetterQueue:
         Type : SQS
         TargetArn: !Ref FunctionQueueDLQ
