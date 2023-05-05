@@ -93,6 +93,60 @@ Resources:
                 - kms:Encrypt*
               Resource: !GetAtt InsuranceKMSKey.Arn
 
+  LifeInsuranceLoadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: life_insurance_load/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      ReservedConcurrentExecutions: 100
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
+          SQS_QUEUE: !Ref LifeInsuranceQueue
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !Ref FunctionQueueDLQ
+      Policies:
+        - SQSPollerPolicy:  # Make sure this policy is correctly defined
+            QueueName: !Ref LifeInsuranceQueue
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: 
+                - kms:Decrypt
+                - kms:Encrypt
+              Resource: !GetAtt InsuranceKMSKey.Arn
+
+  AutoInsuranceLoadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: auto_insurance_load/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      ReservedConcurrentExecutions: 100
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref AutoInsuranceDynamoTable
+          SQS_QUEUE: !Ref AutoInsuranceQueue
+      DeadLetterQueue:
+        Type : SQS
+        TargetArn: !Ref FunctionQueueDLQ
+      Policies:
+        - SQSPollerPolicy:
+            QueueName: !Ref AutoInsuranceQueue
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: 
+                - kms:Decrypt
+                - kms:Encrypt
+              Resource: !GetAtt InsuranceKMSKey.Arn
+
   PolicyIngestionAPI:
     Type: AWS::Serverless::Api
     Properties:
@@ -245,22 +299,7 @@ Resources:
       QueueName: !Sub "FunctionQueueDLQ-${AWS::StackName}"
       KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
   
-  LifeFunctionQueueDLQPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref LifeInsuranceLoadFunction
-      Action: "sqs:SendMessage"
-      Principal: "sqs.amazonaws.com"
-
-
-  AutoFunctionQueueDLQPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref AutoInsuranceLoadFunction
-      Action: "sqs:SendMessage"
-      Principal: "sqs.amazonaws.com"
- 
-    
+     
   LifeFunctionEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
@@ -269,7 +308,6 @@ Resources:
       EventSourceArn: !GetAtt LifeInsuranceQueue.Arn
       FunctionName: !Ref LifeInsuranceLoadFunction
 
-
   AutoFunctionEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
@@ -277,7 +315,6 @@ Resources:
       Enabled: true
       EventSourceArn: !GetAtt AutoInsuranceQueue.Arn
       FunctionName: !Ref AutoInsuranceLoadFunction
-
   
   LifeInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -348,61 +385,6 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
-
-LifeInsuranceLoadFunction:
-  Type: AWS::Serverless::Function
-  Properties:
-    CodeUri: life_insurance_load/
-    Handler: app.lambda_handler
-    Runtime: python3.10
-    ReservedConcurrentExecutions: 100
-    Architectures:
-      - arm64
-    Environment:
-      Variables:
-        DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
-        SQS_QUEUE: !Ref LifeInsuranceQueue
-    DeadLetterQueue:
-      Type: SQS
-      TargetArn: !Ref FunctionQueueDLQ
-    Policies:
-      - SQSPollerPolicy:  # Make sure this policy is correctly defined
-          QueueName: !Ref LifeInsuranceQueue
-      - Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action: 
-              - kms:Decrypt
-              - kms:Encrypt
-            Resource: !GetAtt InsuranceKMSKey.Arn
-
-
-  AutoInsuranceLoadFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: auto_insurance_load/
-      Handler: app.lambda_handler
-      Runtime: python3.10
-      ReservedConcurrentExecutions: 100
-      Architectures:
-        - arm64
-      Environment:
-        Variables:
-          DYNAMODB_TABLE: !Ref AutoInsuranceDynamoTable
-          SQS_QUEUE: !Ref AutoInsuranceQueue
-      DeadLetterQueue:
-        Type : SQS
-        TargetArn: !Ref FunctionQueueDLQ
-      Policies:
-        - SQSPollerPolicy:
-            QueueName: !Ref AutoInsuranceQueue
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action: 
-                - kms:Decrypt
-                - kms:Encrypt
-              Resource: !GetAtt InsuranceKMSKey.Arn
   
 Outputs:
   PolicyApi:
