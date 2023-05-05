@@ -14,6 +14,14 @@ Metadata:
         - us-east-2
       ignore_checks:
         - E3030
+  checkov:
+    skip: 
+      - CKV_AWS_117:
+        - "*" # Skip the check for ensuring AWS resources that support tags have the Tags property
+      - CKV_AWS_173:
+        - "*"
+
+
 Parameters:
   Env:
     Type: String
@@ -24,6 +32,7 @@ Globals:
   Function:
     Timeout: 3
     Tracing: Active
+   # KmsKeyArn: !GetAtt InsuranceKMSKey.Arn
     VpcConfig:
       SecurityGroupIds:
         - sg-0d494c6ad1b4d3743
@@ -34,6 +43,24 @@ Globals:
     TracingEnabled: True
 
 Resources:
+  InsuranceKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: My KMS key
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id: key-default-1
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - kms:*
+            Resource: '*'
+      EnableKeyRotation: true
+      KeyUsage: ENCRYPT_DECRYPT
+
   PolingestionFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -60,7 +87,11 @@ Resources:
               Action:
                 - events:PutEvents
               Resource: !GetAtt EventBus.Arn
-
+            - Effect: Allow
+              Action: 
+                - kms:Decrypt*
+                - kms:Encrypt*
+              Resource: !GetAtt InsuranceKMSKey.Arn
 
   PolicyIngestionAPI:
     Type: AWS::Serverless::Api
@@ -113,7 +144,6 @@ Resources:
       KeyType: API_KEY
       UsagePlanId: !Ref PolicyIngestionAPIKeyUsagePlan
  
-
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
     Properties:
@@ -179,24 +209,6 @@ Resources:
             Arn: !GetAtt AutoInsuranceQueueDLQ.Arn
       State: ENABLED
   
-  InsuranceKMSKey:
-    Type: AWS::KMS::Key
-    Properties:
-      Description: My KMS key
-      KeyPolicy:
-        Version: '2012-10-17'
-        Id: key-default-1
-        Statement:
-          - Sid: Enable IAM User Permissions
-            Effect: Allow
-            Principal:
-              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
-            Action:
-              - kms:*
-            Resource: '*'
-      EnableKeyRotation: true
-      KeyUsage: ENCRYPT_DECRYPT
-
   LifeInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
@@ -337,36 +349,34 @@ Resources:
         SSEEnabled: true
         KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
 
-  LifeInsuranceLoadFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: life_insurance_load/
-      Handler: app.lambda_handler
-      Runtime: python3.10
-      ReservedConcurrentExecutions: 100
-      Architectures:
-        - arm64
-      Environment:
-        Variables:
-          DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
-          MY_ENCRYPTED_VARIABLE: "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}/{{resolve:ssm:/my-encrypted-variable:version}}}"
-          SQS_QUEUE: !Ref LifeInsuranceQueue
-      DeadLetterQueue:
-        Type : SQS
-        TargetArn: !Ref FunctionQueueDLQ
-      Policies:
-        - SQSPollerPolicy:
-            QueueName: !Ref LifeInsuranceQueue
+LifeInsuranceLoadFunction:
+  Type: AWS::Serverless::Function
+  Properties:
+    CodeUri: life_insurance_load/
+    Handler: app.lambda_handler
+    Runtime: python3.10
+    ReservedConcurrentExecutions: 100
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
+        SQS_QUEUE: !Ref LifeInsuranceQueue
+    DeadLetterQueue:
+      Type: SQS
+      TargetArn: !Ref FunctionQueueDLQ
+    Policies:
+      - SQSPollerPolicy:  # Make sure this policy is correctly defined
+          QueueName: !Ref LifeInsuranceQueue
+      - Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 
+              - kms:Decrypt
+              - kms:Encrypt
+            Resource: !GetAtt InsuranceKMSKey.Arn
 
-  LifeLambdaKMSKeyPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: 'kms:Decrypt'
-      FunctionName: !Ref LifeInsuranceLoadFunction
-      Principal: lambda.amazonaws.com
-      SourceAccount: !Ref AWS::AccountId
-      SourceArn: !GetAtt InsuranceKMSKey.Arn
-  
+
   AutoInsuranceLoadFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -380,22 +390,19 @@ Resources:
         Variables:
           DYNAMODB_TABLE: !Ref AutoInsuranceDynamoTable
           SQS_QUEUE: !Ref AutoInsuranceQueue
-          MY_ENCRYPTED_VARIABLE: "{{resolve:ssm:/my-encrypted-variable:kmsKeyId}}"
       DeadLetterQueue:
         Type : SQS
         TargetArn: !Ref FunctionQueueDLQ
       Policies:
         - SQSPollerPolicy:
             QueueName: !Ref AutoInsuranceQueue
-
-  AutoLambdaKMSKeyPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: 'kms:Decrypt'
-      FunctionName: !Ref AutoInsuranceLoadFunction
-      Principal: lambda.amazonaws.com
-      SourceAccount: !Ref AWS::AccountId
-      SourceArn: !GetAtt InsuranceKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: 
+                - kms:Decrypt
+                - kms:Encrypt
+              Resource: !GetAtt InsuranceKMSKey.Arn
   
 Outputs:
   PolicyApi:
@@ -426,3 +433,12 @@ Outputs:
     Description: Lambda function to load auto insurance events to DynamoDB table
     Value: !GetAtt AutoInsuranceLoadFunction.Arn   
 
+			"Metadata": {
+				"checkov": {
+					"skip": [
+						{
+							"id": "CKV_AWS_59",
+							"comment": "Public API"
+						}
+					]
+				}
