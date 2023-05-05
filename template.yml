@@ -16,9 +16,9 @@ Metadata:
         - E3030
   checkov:
     skip: 
-      - CKV_AWS_117:
-        - "*" # Skip the check for ensuring AWS resources that support tags have the Tags property
-      - CKV_AWS_173:
+      - CKV_AWS_117: #Defined at Global
+        - "*"
+      - CKV_AWS_173: #Defined at Global
         - "*"
 
 
@@ -432,13 +432,3 @@ Outputs:
   AutoInsuranceLoadFunction:
     Description: Lambda function to load auto insurance events to DynamoDB table
     Value: !GetAtt AutoInsuranceLoadFunction.Arn   
-
-			"Metadata": {
-				"checkov": {
-					"skip": [
-						{
-							"id": "CKV_AWS_59",
-							"comment": "Public API"
-						}
-					]
-				}
