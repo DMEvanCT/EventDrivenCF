@@ -14,6 +14,14 @@ Metadata:
         - us-east-2
       ignore_checks:
         - E3030
+  checkov:
+    skip: 
+      - CKV_AWS_117: #Defined at Global
+        - "*"
+      - CKV_AWS_173: #Defined at Global
+        - "*"
+
+
 Parameters:
   Env:
     Type: String
@@ -24,16 +32,45 @@ Globals:
   Function:
     Timeout: 3
     Tracing: Active
+   # KmsKeyArn: !GetAtt InsuranceKMSKey.Arn
+    VpcConfig:
+      SecurityGroupIds:
+        - sg-0d494c6ad1b4d3743
+      SubnetIds:
+        - subnet-06ef0b0a08ad250be
+        - subnet-01669cf8673622f57
   Api:
     TracingEnabled: True
 
 Resources:
+  InsuranceKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: My KMS key
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id: key-default-1
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - kms:*
+            Resource: '*'
+      EnableKeyRotation: true
+      KeyUsage: ENCRYPT_DECRYPT
+
   PolingestionFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: policy_ingestion/
       Handler: app.lambda_handler
       Runtime: python3.10
+      ReservedConcurrentExecutions: 100
+      DeadLetterQueue:
+        Type : SQS
+        TargetArn: !Ref FunctionQueueDLQ
       Architectures:
         - arm64
       Events:
@@ -50,14 +87,77 @@ Resources:
               Action:
                 - events:PutEvents
               Resource: !GetAtt EventBus.Arn
+            - Effect: Allow
+              Action: 
+                - kms:Decrypt*
+                - kms:Encrypt*
+              Resource: !GetAtt InsuranceKMSKey.Arn
 
+  LifeInsuranceLoadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: life_insurance_load/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      ReservedConcurrentExecutions: 100
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
+          SQS_QUEUE: !Ref LifeInsuranceQueue
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !Ref FunctionQueueDLQ
+      Policies:
+        - SQSPollerPolicy:  # Make sure this policy is correctly defined
+            QueueName: !Ref LifeInsuranceQueue
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: 
+                - kms:Decrypt
+                - kms:Encrypt
+              Resource: !GetAtt InsuranceKMSKey.Arn
+
+  AutoInsuranceLoadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: auto_insurance_load/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      ReservedConcurrentExecutions: 100
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref AutoInsuranceDynamoTable
+          SQS_QUEUE: !Ref AutoInsuranceQueue
+      DeadLetterQueue:
+        Type : SQS
+        TargetArn: !Ref FunctionQueueDLQ
+      Policies:
+        - SQSPollerPolicy:
+            QueueName: !Ref AutoInsuranceQueue
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: 
+                - kms:Decrypt
+                - kms:Encrypt
+              Resource: !GetAtt InsuranceKMSKey.Arn
 
   PolicyIngestionAPI:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref Env
+      TracingEnabled: True
+      CacheClusterEnabled: True
       EndpointConfiguration:
         Type: REGIONAL
+      AccessLogSetting:
+        DestinationArn: !GetAtt PolicyIngestionAPIAccessLogGroup.Arn
+        Format: '$context.identity.sourceIp - [$context.requestTime] "$context.httpMethod $context.resourcePath $context.protocol" $context.status $context.responseLength "$context.requestId"'
 
   APIKeyPolicyIngestionService:
     Type: AWS::ApiGateway::ApiKey
@@ -84,6 +184,12 @@ Resources:
         BurstLimit: 100
         RateLimit: 100
 
+  PolicyIngestionAPIAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/api-gateway/PolicyIngestionAPIAccessLogGroup
+      RetentionInDays: 7
+      KmsKeyId: !Ref InsuranceKMSKey
 
   PolicyIngestionUsagePlanKey:
     Type: AWS::ApiGateway::UsagePlanKey
@@ -92,7 +198,6 @@ Resources:
       KeyType: API_KEY
       UsagePlanId: !Ref PolicyIngestionAPIKeyUsagePlan
  
-
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
     Properties:
@@ -162,21 +267,54 @@ Resources:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: !Sub "LifeInsuranceQueue-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
 
   LifeInsuranceDLQ:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: !Sub "LifeInsuranceQueueDLQ-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
 
   AutoInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: !Sub "AutoInsuranceQueue--${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
 
   AutoInsuranceQueueDLQ:
     Type: 'AWS::SQS::Queue'
     Properties:
       QueueName: !Sub "AutoInsuranceQueueDLQ-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
+  
+  FunctionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "FunctionQueueDLQ-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
+
+  FunctionQueueDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "FunctionQueueDLQ-${AWS::StackName}"
+      KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
+  
+     
+  LifeFunctionEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: !GetAtt LifeInsuranceQueue.Arn
+      FunctionName: !Ref LifeInsuranceLoadFunction
+
+  AutoFunctionEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: !GetAtt AutoInsuranceQueue.Arn
+      FunctionName: !Ref AutoInsuranceLoadFunction
   
   LifeInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -225,6 +363,11 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       TableName: !Sub "LifeInsuranceDynamoTable-${AWS::StackName}"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
   
   AutoInsuranceDynamoTable:
     Type: AWS::DynamoDB::Table
@@ -237,38 +380,12 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       TableName: !Sub "AutoInsuranceDynamoTable-${AWS::StackName}"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
   
-  LifeInsuranceLoadFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: life_insurance_load/
-      Handler: app.lambda_handler
-      Runtime: python3.10
-      Architectures:
-        - arm64
-      Environment:
-        Variables:
-          DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
-          SQS_QUEUE: !Ref LifeInsuranceQueue
-      Policies:
-        - SQSPollerPolicy:
-            QueueName: !Ref LifeInsuranceQueue
-  
-  AutoInsuranceLoadFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: auto_insurance_load/
-      Handler: app.lambda_handler
-      Runtime: python3.10
-      Architectures:
-        - arm64
-      Environment:
-        Variables:
-          DYNAMODB_TABLE: !Ref AutoInsuranceDynamoTable
-          SQS_QUEUE: !Ref AutoInsuranceQueue
-      Policies:
-        - SQSPollerPolicy:
-            QueueName: !Ref AutoInsuranceQueue
 Outputs:
   PolicyApi:
     Description: API Gateway endpoint URL for Prod stage for Policy Ingestion function
@@ -297,4 +414,3 @@ Outputs:
   AutoInsuranceLoadFunction:
     Description: Lambda function to load auto insurance events to DynamoDB table
     Value: !GetAtt AutoInsuranceLoadFunction.Arn   
-

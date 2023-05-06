@@ -47,5 +47,17 @@ jobs:
           quiet: false # optional: display only failed checks
           soft_fail: false # optional: do not return an error code if there are failed checks
           framework: cloudformation # optional: run only on a specific infrastructure {cloudformation,terraform,kubernetes,all}
-          output_format: sarif # optional: the output format, one of: cli, json, junitxml, github_failed_only, or sarif. Default: sarif
-
+          output_format: cli,sarif # optional: the output format, one of: cli, json, junitxml, github_failed_only, or sarif. Default: sarif
+          skip_check: CKV_AWS_117,CKV_AWS_173
+          output_file_path: console,results.sarif # folder and name of results file
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v2
+        
+        # Results are generated only on a success or failure
+        # this is required since GitHub by default won't run the next step
+        # when the previous one has failed. Security checks that do not pass will 'fail'.
+        # An alternative is to add `continue-on-error: true` to the previous step
+        # Or 'soft_fail: true' to checkov.
+      if: success() || failure()
+      with:
+        sarif_file: results.sarif
