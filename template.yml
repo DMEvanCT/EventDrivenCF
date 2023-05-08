@@ -189,7 +189,7 @@ Resources:
     Properties:
       LogGroupName: /aws/api-gateway/PolicyIngestionAPIAccessLogGroup
       RetentionInDays: 7
-      KmsKeyId: !Ref InsuranceKMSKey
+      KmsKeyId: !GetAtt InsuranceKMSKey.Arn 
 
   PolicyIngestionUsagePlanKey:
     Type: AWS::ApiGateway::UsagePlanKey
