@@ -61,7 +61,9 @@ Resources:
           - Sid: Enable AWS Services
             Effect: Allow
             Principal:
-              AWS: '*'
+                Service: 
+                  - "s3.amazonaws.com"
+                  - "logs.amazonaws.com"
             Action:
               - kms:Encrypt
               - kms:Decrypt
