@@ -7,7 +7,7 @@ on:
       - 'feature/*'
       - 'hotfix/*'
       - 'bugfix/*'
-  workflow_dispatch
+  workflow_dispatch:
 
 
 # permission can be added at job level or workflow level
