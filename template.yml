@@ -380,6 +380,7 @@ Resources:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
+        SSEType: KMS
         KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
   
   AutoInsuranceDynamoTable:
@@ -397,6 +398,7 @@ Resources:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
+        SSEType: KMS
         KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
   
 Outputs:
