@@ -413,4 +413,5 @@ Outputs:
     Value: !GetAtt LifeInsuranceLoadFunction.Arn
   AutoInsuranceLoadFunction:
     Description: Lambda function to load auto insurance events to DynamoDB table
-    Value: !GetAtt AutoInsuranceLoadFunction.Arn   
+    Value: !GetAtt AutoInsuranceLoadFunction.Arn  
+    
