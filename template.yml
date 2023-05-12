@@ -94,6 +94,8 @@ Resources:
             Method: POST
             RestApiId: !Ref PolicyIngestionAPI
       Policies:
+        - SQSPollerPolicy:  # Make sure this policy is correctly defined
+            QueueName: !GetAtt FunctionQueue.Arn
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -125,6 +127,8 @@ Resources:
       Policies:
         - SQSPollerPolicy:  # Make sure this policy is correctly defined
             QueueName: !GetAtt LifeInsuranceQueue.Arn
+       - SQSPollerPolicy:  # Make sure this policy is correctly defined
+            QueueName: !GetAtt FunctionQueue.Arn
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -151,7 +155,9 @@ Resources:
         TargetArn: !GetAtt FunctionQueueDLQ.Arn
       Policies:
         - SQSPollerPolicy:
-            QueueName:  !GetAtt FunctionQueueDLQ.Arn
+            QueueName: !GetAtt AutoInsuranceQueue.Arn
+       - SQSPollerPolicy:  # Make sure this policy is correctly defined
+            QueueName: !GetAtt FunctionQueue.Arn
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -400,7 +406,7 @@ Resources:
         SSEEnabled: true
         SSEType: KMS
         KMSMasterKeyId: !GetAtt InsuranceKMSKey.Arn
-  
+
 Outputs:
   PolicyApi:
     Description: API Gateway endpoint URL for Prod stage for Policy Ingestion function
