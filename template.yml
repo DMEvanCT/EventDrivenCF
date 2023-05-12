@@ -83,7 +83,7 @@ Resources:
       ReservedConcurrentExecutions: 100
       DeadLetterQueue:
         Type : SQS
-        TargetArn: !Ref FunctionQueueDLQ
+        TargetArn: !GetAtt FunctionQueueDLQ.Arn
       Architectures:
         - arm64
       Events:
@@ -118,13 +118,13 @@ Resources:
       Environment:
         Variables:
           DYNAMODB_TABLE: !Ref LifeInsuranceDynamoTable
-          SQS_QUEUE: !Ref LifeInsuranceQueue
+          SQS_QUEUE: !GetAtt LifeInsuranceQueue.Arn
       DeadLetterQueue:
         Type: SQS
-        TargetArn: !Ref FunctionQueueDLQ
+        TargetArn: !GetAtt FunctionQueueDLQ.Arn
       Policies:
         - SQSPollerPolicy:  # Make sure this policy is correctly defined
-            QueueName: !Ref LifeInsuranceQueue
+            QueueName: !GetAtt LifeInsuranceQueue.Arn
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -148,10 +148,10 @@ Resources:
           SQS_QUEUE: !Ref AutoInsuranceQueue
       DeadLetterQueue:
         Type : SQS
-        TargetArn: !Ref FunctionQueueDLQ
+        TargetArn: !GetAtt FunctionQueueDLQ.Arn
       Policies:
         - SQSPollerPolicy:
-            QueueName: !Ref AutoInsuranceQueue
+            QueueName:  !GetAtt FunctionQueueDLQ.Arn
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -346,7 +346,7 @@ Resources:
               - sqs:GetQueueUrl
             Resource: !GetAtt LifeInsuranceQueue.Arn
       Queues:
-        - !Ref LifeInsuranceQueue
+        - !GetAtt LifeInsuranceQueue.Arn
   
   AutoInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -363,7 +363,7 @@ Resources:
               ArnEquals:
                 aws:SourceArn: !Ref EventBus
       Queues:
-        - !Ref AutoInsuranceQueue
+        - !GetAtt AutoInsuranceQueue.Arn
   
   LifeInsuranceDynamoTable:
     Type: AWS::DynamoDB::Table
