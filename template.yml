@@ -346,7 +346,7 @@ Resources:
               - sqs:GetQueueUrl
             Resource: !GetAtt LifeInsuranceQueue.Arn
       Queues:
-        - !GetAtt LifeInsuranceQueue.Arn
+        - !Ref LifeInsuranceQueue
   
   AutoInsuranceQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -363,7 +363,7 @@ Resources:
               ArnEquals:
                 aws:SourceArn: !Ref EventBus
       Queues:
-        - !GetAtt AutoInsuranceQueue.Arn
+        - !Ref AutoInsuranceQueue
   
   LifeInsuranceDynamoTable:
     Type: AWS::DynamoDB::Table
