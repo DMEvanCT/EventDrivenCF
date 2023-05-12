@@ -125,10 +125,6 @@ Resources:
         Type: SQS
         TargetArn: !GetAtt FunctionQueueDLQ.Arn
       Policies:
-        - SQSPollerPolicy:  # Make sure this policy is correctly defined
-            QueueName: !GetAtt LifeInsuranceQueue.Arn
-       - SQSPollerPolicy:  # Make sure this policy is correctly defined
-            QueueName: !GetAtt FunctionQueue.Arn
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -136,7 +132,18 @@ Resources:
                 - kms:Decrypt
                 - kms:Encrypt
               Resource: !GetAtt InsuranceKMSKey.Arn
-
+            - Effect: Allow
+              Action: 
+                -  sqs:ChangeMessageVisibility
+                -  sqs:ChangeMessageVisibilityBatch
+                -  sqs:DeleteMessage
+                -  sqs:DeleteMessageBatch
+                -  sqs:GetQueueAttributes
+                -  sqs:ReceiveMessage
+              Resource: 
+                - !GetAtt LifeInsuranceQueue.Arn
+                - !GetAtt FunctionQueue.Arn
+  
   AutoInsuranceLoadFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -154,10 +161,6 @@ Resources:
         Type : SQS
         TargetArn: !GetAtt FunctionQueueDLQ.Arn
       Policies:
-        - SQSPollerPolicy:
-            QueueName: !GetAtt AutoInsuranceQueue.Arn
-       - SQSPollerPolicy:  # Make sure this policy is correctly defined
-            QueueName: !GetAtt FunctionQueue.Arn
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -165,6 +168,17 @@ Resources:
                 - kms:Decrypt
                 - kms:Encrypt
               Resource: !GetAtt InsuranceKMSKey.Arn
+            - Effect: Allow
+              Action: 
+                -  sqs:ChangeMessageVisibility
+                -  sqs:ChangeMessageVisibilityBatch
+                -  sqs:DeleteMessage
+                -  sqs:DeleteMessageBatch
+                -  sqs:GetQueueAttributes
+                -  sqs:ReceiveMessage
+              Resource: 
+                - !GetAtt AutoInsuranceQueue.Arn
+                - !GetAtt FunctionQueue.Arn
 
   PolicyIngestionAPI:
     Type: AWS::Serverless::Api
