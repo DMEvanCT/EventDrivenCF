@@ -291,7 +291,7 @@ Resources:
   AutoInsuranceQueue:
     Type: 'AWS::SQS::Queue'
     Properties:
-      QueueName: !Sub "AutoInsuranceQueue--${AWS::StackName}"
+      QueueName: !Sub "AutoInsuranceQueue-${AWS::StackName}"
       KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
 
   AutoInsuranceQueueDLQ:
@@ -303,7 +303,7 @@ Resources:
   FunctionQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "FunctionQueueDLQ-${AWS::StackName}"
+      QueueName: !Sub "FunctionQueue-${AWS::StackName}"
       KmsMasterKeyId: !GetAtt InsuranceKMSKey.Arn
 
   FunctionQueueDLQ:
