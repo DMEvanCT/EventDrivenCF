@@ -23,7 +23,7 @@ def lambda_handler(event, context):
             'All'
         ],
         VisibilityTimeout=15,
-        WaitTimeSeconds=10
+        WaitTimeSeconds=15
     )
 
     if 'Messages' in sqs_message:
